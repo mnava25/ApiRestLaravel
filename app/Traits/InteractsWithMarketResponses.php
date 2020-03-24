@@ -7,7 +7,7 @@ use stdClass;
 
 trait InteractsWithMarketResponses
 {
-    public function decodeResponse($response) :array {
+    public function decodeResponse($response)  {
         $decodeResponse = json_decode($response);
         return $decodeResponse->data ?? $decodeResponse;
     }

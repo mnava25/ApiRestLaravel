@@ -25,4 +25,8 @@ class MarketService
     public function getCategories(){
         return $this->makeRequest('GET','categories');
     }
+
+    public function getProduct($id){
+        return $this->makeRequest('GET',"products/{$id}");
+    }
 }
