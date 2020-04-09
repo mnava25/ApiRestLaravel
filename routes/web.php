@@ -15,6 +15,8 @@ Route::get('/','WelcomeController@showWelcomePage')->name('name');
 
 Route::get('products/{title}-{id}','ProductController@showProduct')->name('products.show');
 
+Route::get('categories/{title}-{id}/products','CategoryController@showProduct')->name('categories.products.show');
+
 Auth::routes(['register'=>false,'reset'=>false]);
 
 Route::get('/home', 'HomeController@index')->name('home');
