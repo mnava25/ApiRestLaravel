@@ -14,10 +14,10 @@ trait ConsumesExternalServices
         if (method_exists($this,'resolveAuthorization')){
             $this->resolveAuthorization($queryParams,$formParams,$headers);
         }
-        
+
             $response = $client->request($method,$requestUrl,[
                 'query' => $queryParams,
-                'forms_params' => $formParams,
+                'form_params' => $formParams,
                 'headers' => $headers
             ]);
 

@@ -13,6 +13,8 @@
 
 Route::get('/','WelcomeController@showWelcomePage')->name('name');
 
+Route::get('authorization','Auth\LoginController@authorization')->name('authorization');
+
 Route::get('products/{title}-{id}','ProductController@showProduct')->name('products.show');
 
 Route::get('categories/{title}-{id}/products','CategoryController@showProduct')->name('categories.products.show');

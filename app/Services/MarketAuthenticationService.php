@@ -4,28 +4,19 @@ namespace App\Services;
 
 use App\Traits\ConsumesExternalServices;
 use App\Traits\InteractsWithMarketResponses;
+use stdClass;
 
 class MarketAuthenticationService
 {
 
     protected $baseUri;
-    /**
-     * @var \Illuminate\Config\Repository
-     */
+
     private $clientId;
-    /**
-     * @var \Illuminate\Config\Repository
-     */
+
     private $clientSecret;
 
-    /**
-     * @var \Illuminate\Config\Repository
-     */
-
     private $passwordClientSecret;
-    /**
-     * @var \Illuminate\Config\Repository
-     */
+
     private $passwordClientId;
 
     use ConsumesExternalServices,InteractsWithMarketResponses;
@@ -38,14 +29,71 @@ class MarketAuthenticationService
         $this->passwordClientSecret = config('services.market.password_client_secret');
     }
 
-    public function getClientCredentialsToken(){
+    public function getClientCredentialsToken()
+    {
+        if ($token = $this->existingValidClientCredentialsToken()) {
+            return $token;
+        }
+
         $formParams = [
             'grant_type' => 'client_credentials',
-            'client_id' => intval($this->clientId),
-            'client_secret' => $this->clientSecret
+            'client_id' => $this->clientId,
+            'client_secret' => $this->clientSecret,
         ];
 
-        $tokenData = $this->makeRequest('POST','oauth/token',[],$formParams);
-        return "{$tokenData->token_type} {$tokenData->access_token}";
+        $tokenData = $this->makeRequest('POST', 'oauth/token', [], $formParams);
+
+        $this->storeValidToken($tokenData, 'client_credentials');
+
+        return $tokenData->access_token;
+    }
+
+    public function resolveAuthorizationUrl(){
+        $query = http_build_query([
+            'client_id' => $this->clientId,
+            'redirect_uri' => route('authorization'),
+            'response_type' => 'code',
+            'scope' => 'purchase-product manage-products manage-account read-general',
+        ]);
+
+        return "{$this->baseUri}/oauth/authorize?{$query}";
+    }
+
+    /**
+     * @param string $token
+     * @return stdClass
+     */
+    public function getCodeToken(string $code) :stdClass{
+
+        $formParams = [
+            'grant_type' => 'authorization_code',
+            'client_id' => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'redirect_uri' => route('authorization'),
+            'code' => $code,
+        ];
+
+        $tokenData = $this->makeRequest('POST', 'oauth/token', [], $formParams);
+
+        $this->storeValidToken($tokenData, 'authorization_code');
+
+        return $tokenData;
+    }
+
+    private function storeValidToken(stdClass $tokenData, string $grantType) :void{
+        $tokenData->token_expires_at = now()->addSecond($tokenData->expires_in - 5);
+        $tokenData->access_token = "{$tokenData->token_type} {$tokenData->access_token}";
+        $tokenData->grant_type = $grantType;
+        session()->put(['current_token' => $tokenData]);
+    }
+
+    private function existingValidClientCredentialsToken(){
+        if (session()->has('current_token')){
+            $tokenData = session()->get('current_token');
+            if (now()->lt($tokenData->token_expires_at)){
+                return $tokenData->access_token;
+            }
+        }
+        return false;
     }
 }
