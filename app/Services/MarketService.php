@@ -33,4 +33,14 @@ class MarketService
     public function getUserInformation(){
         return $this->makeRequest('GET',"users/me");
     }
+
+    /**
+     * * Obtains a product from the API
+     * @param  int $id
+     * @return string
+     */
+    public function getProduct($id)
+    {
+        return $this->makeRequest('GET', "products/{$id}");
+    }
 }

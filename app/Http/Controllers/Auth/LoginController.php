@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Services\MarketAuthenticationService;
 use App\Services\MarketService;
 use App\User;
+use GuzzleHttp\Exception\ClientException;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
@@ -65,6 +67,31 @@ class LoginController extends Controller
         return redirect()->route('login')->withErrors(['You canceled the authorization code']);
     }
 
+    public function login(Request $request) {
+        $this->validateLogin($request);
+
+        if ($this->hasTooManyLoginAttempts($request)) {
+            $this->fireLockoutEvent($request);
+
+            return $this->sendLockoutResponse($request);
+        }
+
+        try {
+            $tokenData = $this->marketAuthenticationService->getPasswordToken($request->email, $request->password);
+            $userData = $this->marketService->getUserInformation();
+            $user = $this->registerOrUpdateUser($userData,$tokenData);
+            $this->loginUser($user, $request->has('remember'));
+            return redirect()->intended('home');
+        } catch (ClientException $e) {
+            $message = $e->getResponse()->getBody();
+            if (Str::contains($message,'invalid_credential')) {
+                $this->incrementLoginAttempts($request);
+
+                return $this->sendFailedLoginResponse($request);
+            }
+            throw $e;
+        }
+    }
     private function registerOrUpdateUser($userData,$tokenData){
         return User::updateOrCreate([
             'service_id' => $userData->identifier,

@@ -17,8 +17,18 @@ Route::get('authorization','Auth\LoginController@authorization')->name('authoriz
 
 Route::get('products/{title}-{id}','ProductController@showProduct')->name('products.show');
 
+Route::get('products/{title}-{id}/purchase','ProductController@purchaseProduct')->name('products.purchase');
+
+Route::get('products/publish','ProductController@showPublishProductForm')->name('products.publish');
+
+Route::post('products/publish','ProductController@publishProductForm');
+
 Route::get('categories/{title}-{id}/products','CategoryController@showProduct')->name('categories.products.show');
 
 Auth::routes(['register'=>false,'reset'=>false]);
 
 Route::get('/home', 'HomeController@index')->name('home');
+
+Route::get('/home/purchases', 'HomeController@showPurchases')->name('purchases');
+
+Route::get('/home/products', 'HomeController@showProducts')->name('products');
