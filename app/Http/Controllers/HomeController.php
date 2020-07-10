@@ -36,7 +36,10 @@ class HomeController extends Controller
      * @return Renderable
      */
     public function showProducts(Request $request) :Renderable{
-        return view('home');
+	    $publications = $this->marketService->getPurchases($request->user()->service_id);
+	    return view('publications')->with([
+		    'publications' => $publications
+	    ]);
     }
 
     /**
@@ -46,6 +49,10 @@ class HomeController extends Controller
      * @return Renderable
      */
     public function showPurchases(Request $request) :Renderable{
-        return view('home');
+
+    	$purchases = $this->marketService->getPurchases($request->user()->service_id);
+        return view('purchases')->with([
+        	'purchases' => $purchases
+        ]);
     }
 }

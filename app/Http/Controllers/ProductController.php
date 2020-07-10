@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use App\Services\MarketService;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Contracts\View\Factory;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProductController extends Controller
@@ -32,14 +33,21 @@ class ProductController extends Controller
         ]);
     }
 
-    /**
-     * Show the application dashboard.
-     *
-     * @param Request $request
-     * @return Renderable
-     */
-    public function purchaseProduct(Request $request) :Renderable{
-        return view('home');
+	/**
+	 * Show the application dashboard.
+	 *
+	 * @param Request $request
+	 * @param string $title
+	 * @param int $id
+	 * @return RedirectResponse
+	 */
+    public function purchaseProduct(Request $request, string $title, int $id) :RedirectResponse{
+        $this->marketService->purchaseProduct($id, $request->user()->service_id, 1);
+	    return redirect()->route('products.show',[
+		    $title,
+		    $id
+	    ])
+		    ->with('success',['Product purchased']);
     }
 
     /**
@@ -49,16 +57,41 @@ class ProductController extends Controller
      * @return Renderable
      */
     public function showpublishProductForm(Request $request) :Renderable{
-        return view('home');
+        $categories = $this->marketService->getCategories();
+        return view('products.publish')->with([
+            'categories' => $categories
+        ]);
     }
 
-    /**
-     * Show the application dashboard.
-     *
-     * @param Request $request
-     * @return Renderable
-     */
-    public function publishProduct(Request $request) :Renderable{
-        return view('home');
+	/**
+	 * Show the application dashboard.
+	 *
+	 * @param Request $request
+	 * @return RedirectResponse
+	 * @throws ValidationException
+	 */
+    public function publishProduct(Request $request) :RedirectResponse{
+        $rules = [
+        	'title' => 'required',
+	        'details' => 'required',
+	        'stock' => 'required|min:1',
+	        'picture' => 'required|image',
+	        'category' => 'required'
+        ];
+
+        $productData = $this->validate($request,$rules);
+        $productData['picture'] = fopen($request->picture->path(), 'r');
+
+        $productData = $this->marketService->publishProduct($request->user()->service_id,$productData);
+
+        $this->marketService->setProductCategory($productData->identifier,$request->category);
+
+        $this->marketService->updateProduct($request->user()->service_id, $productData->identifier, ['situation' => 'available']);
+
+        return redirect()->route('products.show',[
+        	$productData->title,
+	        $productData->identifier
+        ])
+	        ->with('success',['Product created successfully']);
     }
 }
